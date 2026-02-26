@@ -1,20 +1,17 @@
+# api/auth.py
 # Базовая авторизация по логину и паролю через HTTP-заголовок.
-import os
+
 import secrets
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from config import settings
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
+# Сервер НЕ хранит состояние авторизации.
 security = HTTPBasic()
 
-API_USERNAME = os.getenv("API_USERNAME")
-API_PASSWORD = os.getenv("API_PASSWORD")
 
 
-def verify(credentials: HTTPBasicCredentials = Depends(security)):
+def verify(credentials: HTTPBasicCredentials = Depends(security)) -> str:
     """
     Проверяет HTTP Basic учетные данные
     и возвращает имя пользователя при успехе.
@@ -22,12 +19,12 @@ def verify(credentials: HTTPBasicCredentials = Depends(security)):
     """
     correct_username = secrets.compare_digest(
         credentials.username,
-        os.getenv("API_USERNAME")
+        settings.API_USERNAME,
     )
 
     correct_password = secrets.compare_digest(
         credentials.password,
-        os.getenv("API_PASSWORD")
+        settings.API_PASSWORD,
     )
 
     if not (correct_username and correct_password):
