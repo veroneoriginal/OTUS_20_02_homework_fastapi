@@ -1,6 +1,7 @@
 # Игнорирование моих файлов
 combined_modules.py
 hints/
+predictions.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
