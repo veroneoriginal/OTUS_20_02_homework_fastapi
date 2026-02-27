@@ -1,0 +1,12 @@
+Чтобы посмотреть наполнение базы данных
+
+1) sqlite3 predictions.db
+2) .tables
+
+# Посмотреть структуру таблицы
+3) .schema predictions
+
+Красивый вывод - команды вводить по очереди
+4) .mode column
+5) .headers on
+6) SELECT * FROM predictions;

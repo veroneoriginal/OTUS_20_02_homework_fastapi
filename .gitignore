@@ -1,3 +1,7 @@
+# Игнорирование моих файлов
+combined_modules.py
+hints/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

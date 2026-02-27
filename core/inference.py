@@ -5,21 +5,20 @@ from onnxruntime import InferenceSession
 
 class DiabetesPredictor:
     """
-    Сервис для выполнения инференса модели диабета.
+    Сервис инференса ONNX-модели для предсказания диабета.
     """
 
     def __init__(self, session: InferenceSession):
+        """
+        Инициализирует предиктор с загруженной ONNX-сессией.
+        Предиктор — это объект, который принимает данные и возвращает предсказание.
+        """
         self.session = session
         self.input_name = session.get_inputs()[0].name
 
     def predict(self, pregnancies, glucose, bmi, age) -> int:
         """
-        Подготовка входа для ONNX
-        :param pregnancies:
-        :param glucose:
-        :param bmi:
-        :param age:
-        :return: результат прогноза
+        Выполняет предсказание на основе входных признаков.
         """
         input_data = np.array([[
             pregnancies,

@@ -3,6 +3,7 @@ fastapi==0.133.1
 uvicorn==0.41.0
 pydantic==2.12.5
 pydantic_settings==2.13.1
-numpy==2.4.2
 pylint==4.0.5
 python-dotenv==1.2.1
+numpy==2.4.2
+SQLAlchemy==2.0.47
