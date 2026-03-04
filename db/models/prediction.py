@@ -1,8 +1,6 @@
-# db/models.py
+# db/models/prediction.py
 from sqlalchemy import Column, Integer, Float
-from sqlalchemy.orm import declarative_base
-
-Base = declarative_base()
+from db.models.base import Base
 
 class Prediction(Base):
     """
@@ -12,10 +10,8 @@ class Prediction(Base):
     __tablename__ = "predictions"
 
     id = Column(Integer, primary_key=True, index=True)
-
     pregnancies = Column(Integer)
     glucose = Column(Float)
     bmi = Column(Float)
     age = Column(Integer)
-
     result = Column(Integer)

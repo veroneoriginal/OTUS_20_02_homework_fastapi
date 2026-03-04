@@ -7,3 +7,5 @@ up_docker:
 	@docker compose -f docker-compose.yaml up --build
 
 # docker compose down
+run:
+    uvicorn main:app --reload

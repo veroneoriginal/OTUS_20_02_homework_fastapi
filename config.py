@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     API_USERNAME: str
     API_PASSWORD: str
 
+    # ===== JWT =====
+    JWT_SECRET: str
+    JWT_ALGORITHM: str
+    JWT_EXPIRE_MINUTES: int
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",

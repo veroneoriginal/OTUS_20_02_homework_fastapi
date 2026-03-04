@@ -1,6 +1,6 @@
 # services/prediction_service.py
 from sqlalchemy.orm import Session
-from db.models import Prediction
+from db.models.prediction import Prediction
 from core.inference import DiabetesPredictor
 from api.schemas import PatientRequest
 
