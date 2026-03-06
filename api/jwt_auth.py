@@ -5,10 +5,12 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from config import settings
 
+# Позволяет верифицировать запросы на основе токена
 security = HTTPBearer()
 
 
 def get_current_user(
+        # Authorization: Bearer <token>
         credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """
@@ -21,16 +23,37 @@ def get_current_user(
     token = credentials.credentials
 
     try:
-        payload = jwt.decode(
+        return jwt.decode(
             token,
             settings.JWT_SECRET,
             algorithms=[settings.JWT_ALGORITHM],
         )
-
-        return payload
 
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
         ) from exc
+
+
+def require_role(required_roles: list[str]):
+    """
+    Фабрика для проверки роли пользователя (RBAC).
+
+    1. извлекает пользователя из JWT
+    2. проверяет его роль
+    """
+
+    def role_checker(user=Depends(get_current_user)):
+
+        user_role = user.get("role")
+
+        if user_role not in required_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions",
+            )
+
+        return user
+
+    return role_checker

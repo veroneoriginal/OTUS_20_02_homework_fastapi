@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from api.schemas import LoginRequest, PatientRequest, UserCreate
-from api.jwt_auth import get_current_user
+from api.jwt_auth import require_role
 from core.dependencies import get_predictor
 from core.jwt_service import JWTService
 from core.password_service import PasswordService
@@ -29,7 +29,7 @@ def root():
 def predict(
         data: PatientRequest,
         # pylint: disable=W0613 (unused-argument)
-        user=Depends(get_current_user),
+        user=Depends(require_role(["user", "admin"])),
         predictor: DiabetesPredictor = Depends(get_predictor),
         db: Session = Depends(get_db),
 ):
@@ -95,4 +95,13 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     return {
         "access_token": token,
         "token_type": "bearer",
+        "role": user.role,
     }
+
+
+@router.get("/admin/health")
+def admin_health(
+        # pylint: disable=W0613 (unused-argument)
+        user=Depends(require_role(["admin"]))
+):
+    return {"status": "ok"}
