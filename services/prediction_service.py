@@ -1,8 +1,13 @@
 # services/prediction_service.py
+
+import logging
 from sqlalchemy.orm import Session
 from db.models.prediction import Prediction
 from core.inference import DiabetesPredictor
 from api.schemas import PatientRequest
+
+logger = logging.getLogger(__name__)
+
 
 class PredictionService:
     """
@@ -20,12 +25,16 @@ class PredictionService:
         """
         Выполняет предсказание и сохраняет результат в БД.
         """
-        result = self.predictor.predict(
-            data.Pregnancies,
-            data.Glucose,
-            data.BMI,
-            data.Age
-        )
+        try:
+            result = self.predictor.predict(
+                data.Pregnancies,
+                data.Glucose,
+                data.BMI,
+                data.Age
+            )
+        except Exception as e:
+            logger.exception("Inference error")
+            raise
 
         db_obj = Prediction(
             pregnancies=data.Pregnancies,

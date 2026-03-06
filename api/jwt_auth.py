@@ -1,9 +1,12 @@
 # api/jwt_auth.py
 
+import logging
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 # Позволяет верифицировать запросы на основе токена
 security = HTTPBearer()
@@ -49,6 +52,11 @@ def require_role(required_roles: list[str]):
         user_role = user.get("role")
 
         if user_role not in required_roles:
+
+            logger.warning(
+                f"Access denied for user {user.get('sub')} with role {user_role}"
+            )
+
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not enough permissions",

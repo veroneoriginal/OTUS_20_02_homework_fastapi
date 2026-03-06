@@ -1,15 +1,18 @@
 # api/schemas.py
 # Валидация входных данных через pydantic-модель
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
 
 class PatientRequest(BaseModel):
     """
     Запрос от пациента/пользователя
     """
-    Pregnancies: int
-    Glucose: float
-    BMI: float
-    Age: int
+
+    # ge — больше или равно / le — меньше или равно
+    Pregnancies: int = Field(ge=0, le=20)
+    Glucose: float = Field(ge=0, le=300)
+    BMI: float = Field(ge=10, le=80)
+    Age: int = Field(ge=0, le=120)
 
 
 class UserCreate(BaseModel):

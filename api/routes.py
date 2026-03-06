@@ -1,9 +1,10 @@
 # api/routes.py
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from api.schemas import LoginRequest, PatientRequest, UserCreate
-from api.jwt_auth import require_role
+from api.jwt_auth import require_role, get_current_user
 from core.dependencies import get_predictor
 from core.jwt_service import JWTService
 from core.password_service import PasswordService
@@ -12,10 +13,12 @@ from db.dependencies import get_db
 from db.models.service import get_user_by_email
 from db.models.user import User
 from services.prediction_service import PredictionService
+from config import settings
 
 # Содержит зарегистрированные эндпоинты
 # APIRouter - это способ разделить маршруты по модулям
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 # Корневой эндпоинт
@@ -43,7 +46,7 @@ def predict(
     }
 
 
-@router.post("/register", summary="Регистрация пользователей")
+@router.post("/auth/register", summary="Регистрация пользователей")
 def register(data: UserCreate, db: Session = Depends(get_db)):
     existing_user = get_user_by_email(email=data.email, db=db)
 
@@ -84,6 +87,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
             status_code=401,
             detail="Invalid credentials",
         )
+    logger.info(f"User {user.email} logged in")
 
     token = JWTService.create_access_token(
         {
@@ -95,7 +99,16 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     return {
         "access_token": token,
         "token_type": "bearer",
+        "expires_in": settings.JWT_EXPIRE_MINUTES * 60,
         "role": user.role,
+    }
+
+
+@router.get("/me", summary="Текущий пользователь")
+def get_me(user=Depends(get_current_user)):
+    return {
+        "id": user.get("sub"),
+        "role": user.get("role")
     }
 
 
