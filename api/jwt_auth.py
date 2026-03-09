@@ -54,7 +54,9 @@ def require_role(required_roles: list[str]):
         if user_role not in required_roles:
 
             logger.warning(
-                f"Access denied for user {user.get('sub')} with role {user_role}"
+                "Access denied for user %s with role %s",
+                user.get("sub"),
+                user_role,
             )
 
             raise HTTPException(

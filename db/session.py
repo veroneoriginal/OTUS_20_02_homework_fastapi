@@ -2,11 +2,11 @@
 # Создание подключения к БД
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from config import settings
 
-DATABASE_URL = "sqlite:///./predictions.db"
 
 engine = create_engine(
-    DATABASE_URL,
+    settings.DATABASE_URL,
     connect_args={"check_same_thread": False}
 )
 

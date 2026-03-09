@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str
     JWT_EXPIRE_MINUTES: int
 
+    # ===== DATABASE =====
+    DATABASE_URL: str
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",

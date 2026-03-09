@@ -1,14 +1,13 @@
 # api/routes.py
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from api.schemas import LoginRequest, PatientRequest, UserCreate
 from api.jwt_auth import require_role, get_current_user
-from core.dependencies import get_predictor
+from core.dependencies import get_prediction_service
 from core.jwt_service import JWTService
 from core.password_service import PasswordService
-from core.inference import DiabetesPredictor
 from db.dependencies import get_db
 from db.models.service import get_user_by_email
 from db.models.user import User
@@ -33,11 +32,9 @@ def predict(
         data: PatientRequest,
         # pylint: disable=W0613 (unused-argument)
         user=Depends(require_role(["user", "admin"])),
-        predictor: DiabetesPredictor = Depends(get_predictor),
+        service: PredictionService = Depends(get_prediction_service),
         db: Session = Depends(get_db),
 ):
-    service = PredictionService(predictor=predictor)
-
     prediction = service.predict_and_save(db=db, data=data)
 
     return {
@@ -51,10 +48,7 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
     existing_user = get_user_by_email(email=data.email, db=db)
 
     if existing_user:
-        raise HTTPException(
-            status_code=400,
-            detail="User already exists"
-        )
+        raise HTTPException(status_code=400, detail="User already exists")
 
     user = User(
         email=data.email,
@@ -66,7 +60,13 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    return {"message": "User created"}
+    return {
+        "message": "User created",
+        "id": user.id,
+        "email": user.email,
+        "role": user.role,
+        "status": status.HTTP_201_CREATED,
+    }
 
 
 @router.post("/login", summary="Вход в приложение")
@@ -87,7 +87,10 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
             status_code=401,
             detail="Invalid credentials",
         )
-    logger.info(f"User {user.email} logged in")
+    logger.info(
+        "User %s logged in",
+        user.email,
+    )
 
     token = JWTService.create_access_token(
         {

@@ -1,6 +1,7 @@
 # api/schemas.py
 # Валидация входных данных через pydantic-модель
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
+
 
 
 class PatientRequest(BaseModel):
@@ -19,8 +20,8 @@ class UserCreate(BaseModel):
     """
     Схема запроса для регистрации пользователя.
     """
-    email: str
-    password: str
+    email: EmailStr
+    password: str = Field(min_length=8)
 
 
 class LoginRequest(BaseModel):

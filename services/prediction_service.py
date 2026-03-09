@@ -34,7 +34,7 @@ class PredictionService:
             )
         except Exception as e:
             logger.exception("Inference error")
-            raise
+            raise e
 
         db_obj = Prediction(
             pregnancies=data.Pregnancies,
