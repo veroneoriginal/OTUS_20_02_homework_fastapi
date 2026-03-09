@@ -2,9 +2,10 @@
 
 import logging
 from sqlalchemy.orm import Session
+from api.schemas import PatientRequest
 from db.models.prediction import Prediction
 from core.inference import DiabetesPredictor
-from api.schemas import PatientRequest
+from core.metrics import Metrics
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +33,11 @@ class PredictionService:
                 data.BMI,
                 data.Age
             )
-        except Exception as e:
+        except Exception:
             logger.exception("Inference error")
-            raise e
+            raise # сохраняет полный traceback
+
+        Metrics.increment_inference()
 
         db_obj = Prediction(
             pregnancies=data.Pregnancies,

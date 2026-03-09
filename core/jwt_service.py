@@ -1,5 +1,6 @@
 # core/jwt_service.py
 
+import secrets
 from datetime import datetime, timedelta, timezone
 from jose import jwt
 from config import settings
@@ -48,10 +49,14 @@ class JWTService:
         return encoded_jwt
 
     @classmethod
-    def decode_token(cls, token: str) -> dict:
-
-        return jwt.decode(
-            token,
-            settings.JWT_SECRET,
-            algorithms=[settings.JWT_ALGORITHM],
+    def create_refresh_token(cls) -> tuple[str, datetime]:
+        """
+        Создаёт refresh-токен.
+        Возвращает сам токен и время его истечения.
+        Токен — случайная строка, не JWT.
+        """
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.now(timezone.utc) + timedelta(
+            days=settings.JWT_REFRESH_EXPIRE_DAYS
         )
+        return token, expires_at

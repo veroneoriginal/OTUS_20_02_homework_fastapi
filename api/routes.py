@@ -3,13 +3,27 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from api.schemas import LoginRequest, PatientRequest, UserCreate
+from api.schemas import (
+    LoginRequest,
+    PatientRequest,
+    UserCreate,
+    RefreshRequest,
+)
 from api.jwt_auth import require_role, get_current_user
 from core.dependencies import get_prediction_service
 from core.jwt_service import JWTService
+from core.metrics import Metrics
 from core.password_service import PasswordService
 from db.dependencies import get_db
-from db.models.service import get_user_by_email
+from db.models.service import (
+    get_user_by_email,
+    save_refresh_token,
+    get_refresh_token,
+    revoke_refresh_token,
+    is_account_locked,
+    record_failed_login,
+    reset_failed_logins,
+)
 from db.models.user import User
 from services.prediction_service import PredictionService
 from config import settings
@@ -43,7 +57,8 @@ def predict(
     }
 
 
-@router.post("/auth/register", summary="Регистрация пользователей")
+@router.post("/auth/register", summary="Регистрация пользователей",
+             status_code=status.HTTP_201_CREATED)
 def register(data: UserCreate, db: Session = Depends(get_db)):
     existing_user = get_user_by_email(email=data.email, db=db)
 
@@ -65,7 +80,6 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
         "id": user.id,
         "email": user.email,
         "role": user.role,
-        "status": status.HTTP_201_CREATED,
     }
 
 
@@ -74,33 +88,41 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     user = get_user_by_email(email=data.email, db=db)
 
     if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # проверка заморозки
+    if is_account_locked(user):
         raise HTTPException(
-            status_code=401,
-            detail="Invalid credentials",
+            status_code=403,
+            detail="Account is locked. Try again later.",
         )
 
     if not PasswordService.verify_password(
             password=data.password,
             password_hash=user.password_hash,
     ):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid credentials",
-        )
-    logger.info(
-        "User %s logged in",
-        user.email,
-    )
+        # неудачная попытка
+        record_failed_login(user=user, db=db)
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    token = JWTService.create_access_token(
-        {
-            "sub": str(user.id),
-            "role": user.role,
-        }
+    reset_failed_logins(user=user, db=db)
+
+    logger.info("User %s logged in", user.email)
+
+    access_token = JWTService.create_access_token({"sub": str(user.id), "role": user.role, })
+
+    refresh_token, expires_at = JWTService.create_refresh_token()
+
+    save_refresh_token(
+        user_id=user.id,
+        token=refresh_token,
+        expires_at=expires_at,
+        db=db,
     )
 
     return {
-        "access_token": token,
+        "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
         "expires_in": settings.JWT_EXPIRE_MINUTES * 60,
         "role": user.role,
@@ -115,9 +137,52 @@ def get_me(user=Depends(get_current_user)):
     }
 
 
-@router.get("/admin/health")
+@router.get("/admin/health", summary="Метрики приложения")
 def admin_health(
         # pylint: disable=W0613 (unused-argument)
         user=Depends(require_role(["admin"]))
 ):
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "inference_count": Metrics.get_inference_count(),
+        "uptime_seconds": Metrics.get_uptime_seconds(),
+    }
+
+
+@router.post("/auth/refresh", summary="Обновление access-токена")
+def refresh(data: RefreshRequest, db: Session = Depends(get_db)):
+    """
+    Принимает refresh-токен, возвращает новый access-токен.
+    """
+    db_token = get_refresh_token(token=data.refresh_token, db=db)
+
+    if not db_token:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+
+    user = db.get(User, db_token.user_id)
+
+    access_token = JWTService.create_access_token(
+        {"sub": str(user.id), "role": user.role}
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "expires_in": settings.JWT_EXPIRE_MINUTES * 60,
+    }
+
+
+@router.post("/auth/logout", summary="Выход из приложения")
+def logout(
+        data: RefreshRequest,
+        db: Session = Depends(get_db),
+        # pylint: disable=W0613 (unused-argument)
+        user=Depends(get_current_user),
+):
+    """
+    Отзывает refresh-токен. После этого обновить access-токен будет нельзя.
+    """
+    revoke_refresh_token(token=data.refresh_token, db=db)
+    return {
+        "message": "Successfully logged out",
+    }

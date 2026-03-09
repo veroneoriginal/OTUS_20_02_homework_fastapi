@@ -1,7 +1,5 @@
 # core/password_service.py
-
-from passlib.context import CryptContext
-
+import bcrypt
 
 class PasswordService:
     """
@@ -11,13 +9,8 @@ class PasswordService:
     - хэширование паролей
     - проверку пароля при аутентификации
 
-    Использует алгоритм bcrypt через библиотеку passlib.
+    Использует библиотеку bcrypt.
     """
-
-    _pwd_context = CryptContext(
-        schemes=["bcrypt"],
-        deprecated="auto",
-    )
 
     @classmethod
     def hash_password(
@@ -28,7 +21,10 @@ class PasswordService:
         :param password: исходный пароль пользователя.
         :return: безопасный bcrypt-хэш пароля.
         """
-        return cls._pwd_context.hash(password)
+        return bcrypt.hashpw(
+            password.encode("utf-8"),
+            bcrypt.gensalt()
+        ).decode("utf-8")
 
     @classmethod
     def verify_password(
@@ -41,4 +37,7 @@ class PasswordService:
         :param password_hash: сохранённый в базе хэш пароля.
         :return: True если пароль корректный, иначе False.
         """
-        return cls._pwd_context.verify(password, password_hash)
+        return bcrypt.checkpw(
+            password.encode("utf-8"),
+            password_hash.encode("utf-8")
+        )

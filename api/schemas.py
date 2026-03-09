@@ -30,3 +30,9 @@ class LoginRequest(BaseModel):
     """
     email: str
     password: str
+
+class RefreshRequest(BaseModel):
+    """
+    Схема запроса для обновления access-токена.
+    """
+    refresh_token: str
