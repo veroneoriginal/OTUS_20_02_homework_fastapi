@@ -5,17 +5,16 @@ from api.routes import router
 from db.models.base import Base
 from db.session import engine, SessionLocal
 from db.models.user import User
-# pylint: disable=unused-import
-from db.models.refresh_token import RefreshToken
+from db.models.refresh_token import RefreshToken  # pylint: disable=unused-import
 from db.models.service import get_user_by_email
 from core.password_service import PasswordService
 from config import settings
 
-# Создаётся главный объект приложения
-app = FastAPI(title="ML Diabetes Prediction API")
+app = FastAPI(title="ML Diabetes Prediction API")  # Создаётся главный объект приложения
 
 # Добавляю все маршруты, которые лежат внутри routers, в основное приложение
 app.include_router(router)
+
 
 def seed_admin():
     """
@@ -38,6 +37,7 @@ def seed_admin():
             db.commit()
     finally:
         db.close()
+
 
 Base.metadata.create_all(bind=engine)
 

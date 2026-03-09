@@ -17,7 +17,9 @@ def get_user_by_email(
     return db.query(User).filter(User.email == email).first()
 
 
-def hash_token(token: str) -> str:
+def hash_token(
+        token: str,
+) -> str:
     """
     Хэширует refresh-токен через SHA-256.
     """
@@ -51,8 +53,7 @@ def get_refresh_token(
     """
     return db.query(RefreshToken).filter(
         RefreshToken.token_hash == hash_token(token),
-        # pylint: disable=singleton-comparison
-        RefreshToken.revoked == False,
+        RefreshToken.revoked == False,  # pylint: disable=singleton-comparison
         RefreshToken.expires_at > datetime.now(timezone.utc),
     ).first()
 
@@ -70,7 +71,9 @@ def revoke_refresh_token(
         db.commit()
 
 
-def is_account_locked(user: User) -> bool:
+def is_account_locked(
+        user: User,
+) -> bool:
     """
     Проверяет, заморожен ли аккаунт.
     Возвращает True если заморозка ещё активна.
@@ -83,11 +86,20 @@ def is_account_locked(user: User) -> bool:
     return locked_until > datetime.now(timezone.utc)
 
 
-def record_failed_login(user: User, db: Session) -> None:
+def record_failed_login(
+        user: User,
+        db: Session,
+) -> None:
     """
     Увеличивает счётчик неудачных попыток.
     При достижении лимита — замораживает аккаунт.
     """
+
+    # если предыдущая заморозка уже истекла — сбросить счётчик
+    if user.locked_until and not is_account_locked(user):
+        user.failed_login_attempts = 0
+        user.locked_until = None
+
     user.failed_login_attempts += 1
 
     if user.failed_login_attempts >= settings.MAX_LOGIN_ATTEMPTS:

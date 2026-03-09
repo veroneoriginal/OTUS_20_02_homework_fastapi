@@ -27,11 +27,9 @@ class JWTService:
 
         to_encode = data.copy()
 
-        expire = datetime.now(timezone.utc) + timedelta(
-            minutes=settings.JWT_EXPIRE_MINUTES
-        )
-
         now = datetime.now(timezone.utc)
+
+        expire = now + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
 
         to_encode.update(
             {
